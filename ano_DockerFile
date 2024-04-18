@@ -1,0 +1,60 @@
+# Use a base image that provides a Linux distribution
+FROM ubuntu:18.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update the package repository and install necessary packages
+RUN apt-get update && \
+    apt-get install -y \
+    sudo \
+    curl \
+    wget \
+    apt-transport-https \
+    gnupg \
+    ca-certificates \
+    software-properties-common \
+    openjdk-11-jdk 
+
+RUN echo 'root:root' | chpasswd    
+
+RUN cd ~/
+RUN mkdir .ssh
+
+ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-amd64
+ENV PATH $PATH:$JAVA_HOME/bin
+
+
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+RUN sudo add-apt-repository \
+    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+    $(lsb_release -cs) \
+    stable"
+RUN sudo apt update
+RUN sudo apt install -y docker-ce=5:19.03.12~3-0~ubuntu-bionic docker-ce-cli=5:19.03.12~3-0~ubuntu-bionic
+
+
+RUN curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && chmod +x ./kubectl \
+    && mv ./kubectl /usr/local/bin/kubectl \
+    && curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 \
+    && chmod +x get_helm.sh && ./get_helm.sh
+
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+RUN apt-get update && apt-get install -y unzip
+
+RUN sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+RUN sudo unzip awscliv2.zip
+RUN sudo ./aws/install
+
+RUN useradd -m user && \
+    echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/user && \
+    chmod 0440 /etc/sudoers.d/user
+USER user
+
+# Set working directory
+
+WORKDIR /home/user
+
+# Start Docker daemon and keep it running
+CMD ["sh", "-c", "sudo service docker start && tail -f /dev/null"]

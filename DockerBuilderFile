@@ -1,0 +1,38 @@
+# Use a base image that provides a Linux distribution
+FROM ubuntu:22.04
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update the package repository and install necessary packages
+RUN apt-get update && \
+    apt-get install -y \
+    sudo \
+    curl \
+    wget \
+    apt-transport-https \
+    gnupg \
+    ca-certificates \
+    software-properties-common \
+    awscli
+
+RUN echo 'root:root' | chpasswd    
+
+RUN cd ~/
+
+RUN mkdir .ssh
+
+RUN curl -fsSL -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m user && \
+    echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/user && \
+    chmod 0440 /etc/sudoers.d/user
+USER user
+
+# Set working directory
+WORKDIR /home/user
+
+# Start Docker daemon and keep it running
+CMD ["sh", "-c", "sudo service docker start && tail -f /dev/null"]
